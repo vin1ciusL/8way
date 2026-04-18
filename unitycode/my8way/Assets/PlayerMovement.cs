@@ -3,37 +3,62 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     private Rigidbody2D rb;
-    AudioSource audio;
+    private AudioSource audioSource;
     public float speed;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    
+    // NOVO: Controla a rapidez com que ele acelera e freia. 
+    // Valores altos (ex: 15-20) = mais duro. Valores baixos (ex: 5) = desliza mais.
+    public float suavidade = 15f; 
+    private Vector2 velocidadeAtual; // Guarda a força do movimento frame a frame
+
+    private float lastDamageTime = 0f;
+    private float damageCooldown = 0.5f; 
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        audio = GetComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>();
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
-        // Variaveis para capturar o input do jogador
-        float moveHorizontal = Input.GetAxis("Horizontal");
-        float moveVertical = Input.GetAxis("Vertical");
+        // Se o jogador está morto, zera a velocidade e não mexe
+        if (GameController.gameOver)
+        {
+            velocidadeAtual = Vector2.zero;
+            return;
+        }
 
-        // Cria um vetor de movimento com base no input do jogador
-        Vector2 movement = new Vector2(moveHorizontal, moveVertical);
+        // Mantemos o GetAxisRaw para captar o clique exato
+        float moveHorizontal = Input.GetAxisRaw("Horizontal");
+        float moveVertical = Input.GetAxisRaw("Vertical");
 
-        // Move o jogador aplicando o vetor de movimento ao Rigidbody2D
-        rb.MovePosition(rb.position + movement.normalized * speed * Time.fixedDeltaTime);
+        // Esta é a velocidade máxima que o jogador quer alcançar nesta direção
+        Vector2 velocidadeAlvo = new Vector2(moveHorizontal, moveVertical).normalized * speed;
+
+        // O 'Lerp' empurra a 'velocidadeAtual' em direção à 'velocidadeAlvo' de forma suave
+        velocidadeAtual = Vector2.Lerp(velocidadeAtual, velocidadeAlvo, suavidade * Time.fixedDeltaTime);
+
+        // Move o jogador usando essa velocidade suavizada
+        rb.MovePosition(rb.position + velocidadeAtual * Time.fixedDeltaTime);
     }
 
-    // Detecta colisões com objetos marcados como "Coletavel"
+    // Detecta colisões com objetos marcados como "Coletavel" ou "Inimigo"
     void OnTriggerEnter2D(Collider2D other)
     {
-        // Verifica se o objeto colidido tem a tag "Coletavel"
         if (other.gameObject.CompareTag("Coletavel"))
         {
-            audio.Play();
+            audioSource.Play(); 
+            GameController.getCoin();
             Destroy(other.gameObject);
+        }
+        else if (other.gameObject.CompareTag("Inimigo"))
+        {
+            if (Time.time - lastDamageTime >= damageCooldown)
+            {
+                GameController.TakeDamage(1);
+                lastDamageTime = Time.time;
+            }
         }
     }
 }
