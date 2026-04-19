@@ -36,7 +36,6 @@
 - **`GameController.cs`** ⚙️
   - **Função**: Gestor central de estado do jogo
   - **Controla**: 
-    - Contador de moedas (`coinCount`)
     - Saúde do player (`playerHealth`)
     - Estado de Game Over
     - Tempo de jogo (`gameTime`)
@@ -44,7 +43,6 @@
     - `Init()` - Reseta o jogo ao iniciar
     - `TakeDamage(int damage)` - Aplica dano ao player
     - `Heal(int amount)` - Restaura saúde
-    - `getCoin()` - Decrementa contador quando player coleta moeda
   - **Eventos**: `OnHealthChanged`, `OnGameOver`
 
 ### Player
@@ -148,7 +146,7 @@
     - Pop-up de recompensas
     - Painel de Game Over
   - **Referências Necessárias**:
-    - `healthText`, `coinsText`, `timerText`, `finalTimeText`
+    - `healthText`, `timerText`, `finalTimeText`
     - `zoneProgressText`, `zoneCountText`, `popupText`
     - `endGamePanel`
   - **Eventos Inscritos**:

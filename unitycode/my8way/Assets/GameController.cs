@@ -3,7 +3,6 @@ using System;
 
 public static class GameController
 {
-    private static int coinCount;
     private static int playerHealth = 30;
     private const int MAX_HEALTH = 30;
     private static float gameTime = 0f; 
@@ -23,12 +22,10 @@ public static class GameController
     // O jogo acaba se morrer OU se completar as 4 áreas
     public static bool gameOver { get { return playerHealth <= 0 || zonesCompleted >= 4; } }
     public static int PlayerHealth { get { return playerHealth; } }
-    public static int CoinCount { get { return coinCount; } }
     public static float GameTime { get { return gameTime; } }
 
     public static void Init()
     {
-        coinCount = 0;
         playerHealth = MAX_HEALTH;
         gameTime = 0f;
         

@@ -4,8 +4,7 @@ using TMPro;
 public class UIManager : MonoBehaviour
 {
     public GameObject endGamePanel;
-    public TextMeshProUGUI healthText; 
-    public TextMeshProUGUI coinsText;  
+    public TextMeshProUGUI healthText;  
 
     // NOVAS REFERÊNCIAS DE TEXTO
     public TextMeshProUGUI timerText;      // Texto do tempo na tela do jogo
@@ -25,8 +24,6 @@ public class UIManager : MonoBehaviour
         // Validação de referências
         if (healthText == null)
             Debug.LogError("UIManager: healthText não configurada!");
-        if (coinsText == null)
-            Debug.LogError("UIManager: coinsText não configurada!");
         if (timerText == null)
             Debug.LogError("UIManager: timerText não configurada!");
         if (finalTimeText == null)
@@ -109,10 +106,6 @@ public class UIManager : MonoBehaviour
         if (healthText != null)
         {
             healthText.text = "Vida: " + GameController.PlayerHealth + "/30";
-        }
-        if (coinsText != null)
-        {
-            coinsText.text = "Comida: " + GameController.CoinCount;
         }
         if (zoneCountText != null)
         {
