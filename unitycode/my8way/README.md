@@ -6,11 +6,16 @@
 
 ### Mecânicas Principais
 - ⚔️ **Motosserra**: Arma que gira seguindo o mouse para derrotar inimigos
-- 🧟 **Inimigos**: Zumbis que perseguem o jogador inteligentemente
-- 💰 **Moedas**: Objetivos de coleta espalhadas pela arena
+- 🧟 **Inimigos**: Zumbis que perseguem o jogador inteligentemente (com balanço caótico)
+- 💰 **Comida**: Objetivos de coleta espalhadas pela arena
 - ❤️ **Sistema de Saúde**: Jogador começa com 30 pontos de vida
 - ⏱️ **Dificuldade Progressiva**: A cada minuto, inimigos spawnam mais rápido
 - 📹 **Câmera Dinâmica**: Segue o jogador suavemente
+- 🎯 **Zonas de Captura**: 4 áreas especiais que o jogador deve capturar para desbloquear recompensas
+  - **Zona 1**: Desbloqueia Granada 💣
+  - **Zona 2**: +50% de Dano da Motosserra 🔥
+  - **Zona 3**: +50% de Velocidade ⚡
+  - **Zona 4**: Vitória! 🏆
 
 ---
 
@@ -103,25 +108,54 @@
 - **`CoinSpawner.cs`** 💰
   - **Função**: Gera moedas ao longo do jogo
   - **Controla**:
-    - Spawn contínuo de moedas a cada 5s
+    - Spawn contínuo de moedas a cada 12s (modificado de 5s)
     - Posicionamento (círculo ao redor do player)
     - Limites da arena
   - **Parâmetros Configuráveis**:
     - `minSpawnRadius` / `maxSpawnRadius`: Distância de spawn
     - Limites do mapa (duplicados com EnemySpawner)
 
+- **`ComidaTimer.cs`** ⏱️
+  - **Função**: Destruição automática de moedas após tempo
+  - **Controla**: Destruição da moeda após 10 segundos
+  - **Como usar**: Arraste para o Prefab da moeda
+
+- **`ZonePointer.cs`** 🔺
+  - **Função**: Seta que aponta para a zona mais próxima não capturada
+  - **Controla**: Rotação e visibilidade da seta
+  - **Como usar**: Arraste para um sprite de triângulo dentro do Player
+
+### Zonas
+- **`Zone.cs`** 🎯
+  - **Função**: Representa uma zona capturável com mecânica de progressão temporal
+  - **Controla**:
+    - Progresso de captura (quanto tempo já passou capturando)
+    - Tempo total necessário para capturar
+    - Estado de conclusão
+  - **Eventos**:
+    - `OnCaptureProgress` - Emite (progressoAtual, tempoTotal)
+  - **Mecânica**: Player precisa ficar na zona por N segundos contínuos para capturá-la
+
 ### UI
 - **`UIManager.cs`** 🖼️
   - **Função**: Gerencia toda a interface do usuário
   - **Controla**:
     - Display de saúde
-    - Display de moedas
+    - Display de comida
     - Timer de tempo decorrido
+    - Progresso de captura de zonas
+    - Contador de zonas (0/4)
+    - Pop-up de recompensas
     - Painel de Game Over
-    - Incremento de tempo de jogo
   - **Referências Necessárias**:
     - `healthText`, `coinsText`, `timerText`, `finalTimeText`
+    - `zoneProgressText`, `zoneCountText`, `popupText`
     - `endGamePanel`
+  - **Eventos Inscritos**:
+    - `GameController.OnHealthChanged`
+    - `GameController.OnGameOver`
+    - `GameController.OnZoneReward`
+    - `Zone.OnCaptureProgress`
 
 - **`MenuActions.cs`** (ou `ButtonScript.cs`)
   - **Função**: Ações de botões de menu
@@ -256,7 +290,7 @@ public float mapMaxY = 100f;
 | `maxEnemies` | EnemySpawner | 50 | Max inimigos simultâneos na arena |
 | `minSpawnRadius` | EnemySpawner | 10 | Distância mínima de spawn ao redor do player |
 | `maxSpawnRadius` | EnemySpawner | 20 | Distância máxima de spawn ao redor do player |
-| `spawnInterval` | CoinSpawner | 5s | Intervalo de spawn de moedas |
+| `spawnInterval` | CoinSpawner | 12s | Intervalo de spawn de moedas |
 | `velocidadeGiro` | ChainsawWeapon | 25 | Velocidade de rotação da motosserra |
 | `smoothSpeed` | CameraFollow | 0.125 | Suavidade do movimento da câmera |
 

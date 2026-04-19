@@ -22,16 +22,15 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (GameController.gameOver)
-        {
-            velocidadeAtual = Vector2.zero;
-            return;
-        }
+        if (GameController.gameOver) { velocidadeAtual = Vector2.zero; return; }
 
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        Vector2 velocidadeAlvo = new Vector2(moveHorizontal, moveVertical).normalized * speed;
+        // Aplica o buff da 3ª área
+        float velocidadeFinal = speed * GameController.playerSpeedMultiplier; 
+
+        Vector2 velocidadeAlvo = new Vector2(moveHorizontal, moveVertical).normalized * velocidadeFinal;
         velocidadeAtual = Vector2.Lerp(velocidadeAtual, velocidadeAlvo, suavidade * Time.fixedDeltaTime);
         rb.MovePosition(rb.position + velocidadeAtual * Time.fixedDeltaTime);
     }
@@ -52,7 +51,7 @@ public class PlayerMovement : MonoBehaviour
         if (other.gameObject.CompareTag("Coletavel"))
         {
             audioSource.Play(); 
-            GameController.getCoin();
+            GameController.Heal(10); // <--- AGORA CURA 10!
             Destroy(other.gameObject);
         }
     }

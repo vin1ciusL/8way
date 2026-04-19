@@ -2,57 +2,56 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public GameObject enemyPrefab; 
+    public GameObject enemyPrefab;
     public Transform player;
-    
-    public int initialEnemyCount = 10;
-    public float spawnInterval = 1.5f;
-    public int maxEnemies = 50;
 
-    // Distância mínima e máxima do player onde os inimigos vão nascer
-    public float minSpawnRadius = 10f; 
-    public float maxSpawnRadius = 20f;
-    
+    public int initialEnemyCount = 20;
+    public float spawnInterval = 1.2f;
+    public int maxEnemies = 150;
+
+    public float minSpawnRadius = 12f;
+    public float maxSpawnRadius = 22f;
+
     private float lastSpawnTime = 0f;
     private int currentEnemyCount = 0;
     private int lastDifficultyMinute = 0;
 
+    // Rotaciona o quadrante de spawn pra encerclar o player
+    private int spawnQuadrant = 0;
+    private int spawnsSinceQuadrantChange = 0;
+    private const int SPAWNS_PER_QUADRANT = 3;
+
     void Start()
     {
-        // Tenta usar PlayerReference singleton primeiro
         if (player == null)
         {
             if (PlayerReference.instance != null)
-            {
                 player = PlayerReference.instance;
-            }
             else
-            {
-                Debug.LogError("EnemySpawner: PlayerReference não encontrada! Tente adicionar PlayerReference ao Player GameObject.");
-            }
+                Debug.LogError("EnemySpawner: PlayerReference não encontrada!");
         }
 
         for (int i = 0; i < initialEnemyCount; i++)
-        {
             SpawnEnemy();
-        }
     }
 
     void Update()
     {
         if (GameController.gameOver || player == null) return;
 
-        // DIFICULDADE
-        int currentMinute = Mathf.FloorToInt(GameController.GameTime / 60f);
-        if (currentMinute > lastDifficultyMinute)
+        // Dificuldade progressiva
+        int minute = Mathf.FloorToInt(GameController.GameTime / 60f);
+        if (minute > lastDifficultyMinute)
         {
-            spawnInterval /= 1.5f; 
-            spawnInterval = Mathf.Max(spawnInterval, 0.2f);
-            lastDifficultyMinute = currentMinute;
+            spawnInterval = Mathf.Max(spawnInterval / 1.5f, 0.2f);
+            lastDifficultyMinute = minute;
         }
 
-        // SPAWN
-        if (currentEnemyCount < maxEnemies && Time.time - lastSpawnTime >= spawnInterval)
+        float intervaloReal = GameController.isCapturingZone
+            ? spawnInterval / 1.33f
+            : spawnInterval;
+
+        if (currentEnemyCount < maxEnemies && Time.time - lastSpawnTime >= intervaloReal)
         {
             SpawnEnemy();
             lastSpawnTime = Time.time;
@@ -62,19 +61,38 @@ public class EnemySpawner : MonoBehaviour
     void SpawnEnemy()
     {
         if (enemyPrefab == null) return;
-        
-        Vector3 spawnPosition = GetValidSpawnPosition();
-        GameObject newEnemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+
+        Vector3 pos = GetDirectionalSpawnPosition();
+        var newEnemy = Instantiate(enemyPrefab, pos, Quaternion.identity);
         currentEnemyCount++;
-        
-        var destroyer = newEnemy.AddComponent<EnemyDestroyListener>();
-        destroyer.spawner = this;
+
+        var listener = newEnemy.AddComponent<EnemyDestroyListener>();
+        listener.spawner = this;
+
+        // Avança o quadrante a cada N spawns
+        spawnsSinceQuadrantChange++;
+        if (spawnsSinceQuadrantChange >= SPAWNS_PER_QUADRANT)
+        {
+            spawnQuadrant = (spawnQuadrant + 1) % 4;
+            spawnsSinceQuadrantChange = 0;
+        }
     }
 
-    // Obtém uma posição de spawn válida usando MapConfig
-    Vector3 GetValidSpawnPosition()
+    // Spawn rotativo por quadrante (N/S/L/O) com variação de ±35°
+    // Isso faz os zumbis chegarem de direções diferentes, encercando o player
+    Vector3 GetDirectionalSpawnPosition()
     {
-        return MapConfig.GetRandomSpawnPosition(player, minSpawnRadius, maxSpawnRadius);
+        float baseAngle = spawnQuadrant * 90f + Random.Range(-35f, 35f);
+        float radius = Random.Range(minSpawnRadius, maxSpawnRadius);
+        float rad = baseAngle * Mathf.Deg2Rad;
+
+        Vector3 pos = player.position + new Vector3(
+            Mathf.Cos(rad) * radius,
+            Mathf.Sin(rad) * radius,
+            0f
+        );
+
+        return MapConfig.ClampPosition(pos);
     }
 
     public void OnEnemyDestroyed()
