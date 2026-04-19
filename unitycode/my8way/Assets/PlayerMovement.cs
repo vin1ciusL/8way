@@ -5,14 +5,14 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private AudioSource audioSource;
     public float speed;
-    
-    // NOVO: Controla a rapidez com que ele acelera e freia. 
-    // Valores altos (ex: 15-20) = mais duro. Valores baixos (ex: 5) = desliza mais.
-    public float suavidade = 15f; 
-    private Vector2 velocidadeAtual; // Guarda a força do movimento frame a frame
+    public float suavidade = 25f; 
+    private Vector2 velocidadeAtual;
 
     private float lastDamageTime = 0f;
-    private float damageCooldown = 0.5f; 
+    private float damageCooldown = 0.4f; // Reduzido de 0.5s para dano mais frequente
+    
+    // Contador de quantos zumbis estão encostados (suporta múltiplos inimigos)
+    private int enemiesInContact = 0;
 
     void Start()
     {
@@ -22,28 +22,31 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Se o jogador está morto, zera a velocidade e não mexe
         if (GameController.gameOver)
         {
             velocidadeAtual = Vector2.zero;
             return;
         }
 
-        // Mantemos o GetAxisRaw para captar o clique exato
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        // Esta é a velocidade máxima que o jogador quer alcançar nesta direção
         Vector2 velocidadeAlvo = new Vector2(moveHorizontal, moveVertical).normalized * speed;
-
-        // O 'Lerp' empurra a 'velocidadeAtual' em direção à 'velocidadeAlvo' de forma suave
         velocidadeAtual = Vector2.Lerp(velocidadeAtual, velocidadeAlvo, suavidade * Time.fixedDeltaTime);
-
-        // Move o jogador usando essa velocidade suavizada
         rb.MovePosition(rb.position + velocidadeAtual * Time.fixedDeltaTime);
     }
 
-    // Detecta colisões com objetos marcados como "Coletavel" ou "Inimigo"
+    void Update()
+    {
+        // Aplica dano com cooldown enquanto há 1 ou mais inimigos em contato
+        if (enemiesInContact > 0 && Time.time - lastDamageTime >= damageCooldown)
+        {
+            GameController.TakeDamage(2); // Dano aumentado de 1 para 2
+            lastDamageTime = Time.time;
+        }
+    }
+
+    // Moedas continuam sendo Trigger (Atravessam)
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.gameObject.CompareTag("Coletavel"))
@@ -52,12 +55,32 @@ public class PlayerMovement : MonoBehaviour
             GameController.getCoin();
             Destroy(other.gameObject);
         }
-        else if (other.gameObject.CompareTag("Inimigo"))
+    }
+
+    // Detecta entrada em colisão com inimigo
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Inimigo"))
         {
-            if (Time.time - lastDamageTime >= damageCooldown)
+            if (collision.otherCollider is CircleCollider2D)
             {
-                GameController.TakeDamage(1);
-                lastDamageTime = Time.time;
+                enemiesInContact++; // Incrementa contador
+            }
+        }
+    }
+
+    // Detecta saída de colisão com inimigo
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Inimigo"))
+        {
+            if (collision.otherCollider is CircleCollider2D)
+            {
+                enemiesInContact--; // Decrementa contador
+                
+                // Segurança: evita que o número fique negativo por algum bug de física
+                if (enemiesInContact < 0)
+                    enemiesInContact = 0;
             }
         }
     }

@@ -8,9 +8,17 @@ public class CameraFollow : MonoBehaviour
 
     void Start()
     {
+        // Tenta usar PlayerReference singleton primeiro
         if (player == null)
         {
-            player = GameObject.FindGameObjectWithTag("Player").transform;
+            if (PlayerReference.instance != null)
+            {
+                player = PlayerReference.instance;
+            }
+            else
+            {
+                Debug.LogError("CameraFollow: PlayerReference não encontrada! Tente adicionar PlayerReference ao Player GameObject.");
+            }
         }
     }
 

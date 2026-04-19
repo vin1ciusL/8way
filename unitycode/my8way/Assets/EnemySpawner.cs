@@ -3,21 +3,15 @@ using UnityEngine;
 public class EnemySpawner : MonoBehaviour
 {
     public GameObject enemyPrefab; 
-    public Transform player; // NOVO: Referência ao jogador
+    public Transform player;
     
     public int initialEnemyCount = 10;
     public float spawnInterval = 1.5f;
     public int maxEnemies = 50;
 
-    // NOVO: Distância mínima e máxima do player onde os inimigos vão nascer
+    // Distância mínima e máxima do player onde os inimigos vão nascer
     public float minSpawnRadius = 10f; 
     public float maxSpawnRadius = 20f;
-
-    // NOVO: Limites da sua arena imensa (ajuste esses valores no Inspector)
-    public float mapMinX = -100f;
-    public float mapMaxX = 100f;
-    public float mapMinY = -100f;
-    public float mapMaxY = 100f;
     
     private float lastSpawnTime = 0f;
     private int currentEnemyCount = 0;
@@ -25,10 +19,17 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        // Tenta achar o player automaticamente caso você esqueça de arrastar no Inspector
+        // Tenta usar PlayerReference singleton primeiro
         if (player == null)
         {
-            player = GameObject.FindGameObjectWithTag("Player").transform;
+            if (PlayerReference.instance != null)
+            {
+                player = PlayerReference.instance;
+            }
+            else
+            {
+                Debug.LogError("EnemySpawner: PlayerReference não encontrada! Tente adicionar PlayerReference ao Player GameObject.");
+            }
         }
 
         for (int i = 0; i < initialEnemyCount; i++)
@@ -42,7 +43,7 @@ public class EnemySpawner : MonoBehaviour
         if (GameController.gameOver || player == null) return;
 
         // DIFICULDADE
-        int currentMinute = Mathf.FloorToInt(GameController.gameTime / 60f);
+        int currentMinute = Mathf.FloorToInt(GameController.GameTime / 60f);
         if (currentMinute > lastDifficultyMinute)
         {
             spawnInterval /= 1.5f; 
@@ -70,24 +71,10 @@ public class EnemySpawner : MonoBehaviour
         destroyer.spawner = this;
     }
 
-    // Função matemática que sorteia um ponto em volta do player e prende dentro das paredes
+    // Obtém uma posição de spawn válida usando MapConfig
     Vector3 GetValidSpawnPosition()
     {
-        // 1. Escolhe uma direção aleatória em 360 graus
-        float randomAngle = Random.Range(0f, Mathf.PI * 2);
-        
-        // 2. Escolhe uma distância aleatória entre o raio mínimo e máximo
-        float randomRadius = Random.Range(minSpawnRadius, maxSpawnRadius);
-
-        // 3. Calcula o X e Y baseado no player
-        float spawnX = player.position.x + (Mathf.Cos(randomAngle) * randomRadius);
-        float spawnY = player.position.y + (Mathf.Sin(randomAngle) * randomRadius);
-
-        // 4. PRENDE nas paredes da arena (Impede que o X e Y passem dos limites que você configurou)
-        spawnX = Mathf.Clamp(spawnX, mapMinX, mapMaxX);
-        spawnY = Mathf.Clamp(spawnY, mapMinY, mapMaxY);
-
-        return new Vector3(spawnX, spawnY, 0f);
+        return MapConfig.GetRandomSpawnPosition(player, minSpawnRadius, maxSpawnRadius);
     }
 
     public void OnEnemyDestroyed()

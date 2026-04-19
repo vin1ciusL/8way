@@ -14,6 +14,19 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         GameController.Init();
+        
+        // Validação de referências
+        if (healthText == null)
+            Debug.LogError("UIManager: healthText não configurada!");
+        if (coinsText == null)
+            Debug.LogError("UIManager: coinsText não configurada!");
+        if (timerText == null)
+            Debug.LogError("UIManager: timerText não configurada!");
+        if (finalTimeText == null)
+            Debug.LogWarning("UIManager: finalTimeText não configurada (opcional)");
+        if (endGamePanel == null)
+            Debug.LogError("UIManager: endGamePanel não configurada!");
+        
         UpdateHealthDisplay();
         
         // Inscreve-se nos eventos do GameController
@@ -30,25 +43,21 @@ public class UIManager : MonoBehaviour
 
     void Update() 
     {
-        // NOVO: Só conta o tempo se o jogo não acabou
+        // Atualiza o timer a cada frame
         if (!GameController.gameOver)
         {
-            GameController.gameTime += Time.deltaTime;
+            GameController.UpdateGameTime(Time.deltaTime);
             UpdateTimerDisplay();
         }
-
-        // Mantém display de vida atualizado (redundante mas seguro)
-        UpdateHealthDisplay();
     }
 
-    // NOVO: Formata o tempo e atualiza na tela
     void UpdateTimerDisplay()
     {
         if (timerText != null)
         {
             // Calcula minutos e segundos
-            int minutes = Mathf.FloorToInt(GameController.gameTime / 60F);
-            int seconds = Mathf.FloorToInt(GameController.gameTime - minutes * 60);
+            int minutes = Mathf.FloorToInt(GameController.GameTime / 60F);
+            int seconds = Mathf.FloorToInt(GameController.GameTime - minutes * 60);
             
             // Formata para ficar no estilo 00:00
             timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
@@ -71,11 +80,11 @@ public class UIManager : MonoBehaviour
     {
         endGamePanel.SetActive(true);
 
-        // NOVO: Pega o tempo final e exibe no painel de fim de jogo
+        // Pega o tempo final e exibe no painel de fim de jogo
         if (finalTimeText != null)
         {
-            int minutes = Mathf.FloorToInt(GameController.gameTime / 60F);
-            int seconds = Mathf.FloorToInt(GameController.gameTime - minutes * 60);
+            int minutes = Mathf.FloorToInt(GameController.GameTime / 60F);
+            int seconds = Mathf.FloorToInt(GameController.GameTime - minutes * 60);
             
             finalTimeText.text = "Tempo: " + string.Format("{0:00}:{1:00}", minutes, seconds);
         }

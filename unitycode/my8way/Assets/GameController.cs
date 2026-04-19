@@ -7,8 +7,8 @@ public static class GameController
     private static int playerHealth = 30;
     private const int MAX_HEALTH = 30;
     
-    // NOVO: Variável para guardar o tempo
-    public static float gameTime; 
+    // Variável para guardar o tempo do jogo (agora privada)
+    private static float gameTime = 0f; 
 
     // Events para UI e outros sistemas
     public static event Action OnHealthChanged;
@@ -29,11 +29,25 @@ public static class GameController
         get { return coinCount; }
     }
 
+    public static float GameTime
+    {
+        get { return gameTime; }
+    }
+
     public static void Init()
     {
         coinCount = 6;
         playerHealth = MAX_HEALTH;
         gameTime = 0f;
+    }
+
+    // Atualiza o tempo do jogo de forma independente (não depende de UIManager)
+    public static void UpdateGameTime(float deltaTime)
+    {
+        if (!gameOver)
+        {
+            gameTime += deltaTime;
+        }
     }
 
     public static void getCoin()

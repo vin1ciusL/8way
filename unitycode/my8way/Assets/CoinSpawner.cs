@@ -9,20 +9,22 @@ public class CoinSpawner : MonoBehaviour
     // Distância para as moedas
     public float minSpawnRadius = 5f; 
     public float maxSpawnRadius = 15f;
-
-    // Limites da arena (Devem ser iguais aos do EnemySpawner)
-    public float mapMinX = -100f;
-    public float mapMaxX = 100f;
-    public float mapMinY = -100f;
-    public float mapMaxY = 100f;
     
     private float timer = 0f;
 
     void Start()
     {
+        // Tenta usar PlayerReference singleton primeiro
         if (player == null)
         {
-            player = GameObject.FindGameObjectWithTag("Player").transform;
+            if (PlayerReference.instance != null)
+            {
+                player = PlayerReference.instance;
+            }
+            else
+            {
+                Debug.LogError("CoinSpawner: PlayerReference não encontrada! Tente adicionar PlayerReference ao Player GameObject.");
+            }
         }
     }
 
@@ -43,16 +45,7 @@ public class CoinSpawner : MonoBehaviour
     {
         if (coinPrefab == null) return;
 
-        float randomAngle = Random.Range(0f, Mathf.PI * 2);
-        float randomRadius = Random.Range(minSpawnRadius, maxSpawnRadius);
-
-        float spawnX = player.position.x + (Mathf.Cos(randomAngle) * randomRadius);
-        float spawnY = player.position.y + (Mathf.Sin(randomAngle) * randomRadius);
-
-        // Prende a moeda dentro das paredes
-        spawnX = Mathf.Clamp(spawnX, mapMinX, mapMaxX);
-        spawnY = Mathf.Clamp(spawnY, mapMinY, mapMaxY);
-        
-        Instantiate(coinPrefab, new Vector3(spawnX, spawnY, 0f), Quaternion.identity);
+        Vector3 spawnPosition = MapConfig.GetRandomSpawnPosition(player, minSpawnRadius, maxSpawnRadius);
+        Instantiate(coinPrefab, spawnPosition, Quaternion.identity);
     }
 }
