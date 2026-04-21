@@ -4,7 +4,7 @@ public class CoinSpawner : MonoBehaviour
 {
     public GameObject coinPrefab; 
     public Transform player;
-    public float spawnInterval = 12f; 
+    public float spawnInterval = 18f; 
     
     // Distância para as moedas
     public float minSpawnRadius = 5f; 

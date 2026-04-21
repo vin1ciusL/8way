@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public GameObject enemyPrefab;
+    public GameObject[] enemyPrefabs; 
     public Transform player;
 
     public int initialEnemyCount = 20;
@@ -16,7 +16,7 @@ public class EnemySpawner : MonoBehaviour
     private int currentEnemyCount = 0;
     private int lastDifficultyMinute = 0;
 
-    // Rotaciona o quadrante de spawn pra encerclar o player
+    // Controle de quadrantes para o cerco
     private int spawnQuadrant = 0;
     private int spawnsSinceQuadrantChange = 0;
     private const int SPAWNS_PER_QUADRANT = 3;
@@ -39,7 +39,7 @@ public class EnemySpawner : MonoBehaviour
     {
         if (GameController.gameOver || player == null) return;
 
-        // Dificuldade progressiva
+        // Dificuldade progressiva pelo tempo
         int minute = Mathf.FloorToInt(GameController.GameTime / 60f);
         if (minute > lastDifficultyMinute)
         {
@@ -47,9 +47,7 @@ public class EnemySpawner : MonoBehaviour
             lastDifficultyMinute = minute;
         }
 
-        float intervaloReal = GameController.isCapturingZone
-            ? spawnInterval / 1.33f
-            : spawnInterval;
+        float intervaloReal = GameController.isCapturingZone ? spawnInterval / 1.33f : spawnInterval;
 
         if (currentEnemyCount < maxEnemies && Time.time - lastSpawnTime >= intervaloReal)
         {
@@ -60,16 +58,76 @@ public class EnemySpawner : MonoBehaviour
 
     void SpawnEnemy()
     {
-        if (enemyPrefab == null) return;
+        if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
 
         Vector3 pos = GetDirectionalSpawnPosition();
-        var newEnemy = Instantiate(enemyPrefab, pos, Quaternion.identity);
+        float roll = Random.value * 100f; // Sorteio de 0 a 100
+
+        int indexEscolhido = 2; // Padrão: Small
+        EnemyController.EnemyType tipoParaAplicar = EnemyController.EnemyType.Small;
+
+        int zones = GameController.zonesCompleted;
+
+        // --- TABELA DE PORCENTAGENS POR ZONA ---
+        if (zones == 0)
+        {
+            if      (roll < 5f)  { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.GhostAxe; }
+            else if (roll < 10f) { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Giant; }
+            else if (roll < 20f) { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Flanker; }
+            else if (roll < 35f) { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Big; }
+            else if (roll < 50f) { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.Axe; }
+            else                 { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Small; }
+        }
+        else if (zones == 1)
+        {
+            if      (roll < 5f)  { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.GhostAxe; }
+            else if (roll < 10f) { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Giant; }
+            else if (roll < 25f) { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Flanker; }
+            else if (roll < 40f) { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Big; }
+            else if (roll < 55f) { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.Axe; }
+            else                 { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Small; }
+        }
+        else if (zones == 2)
+        {
+            if      (roll < 7.5f) { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.GhostAxe; }
+            else if (roll < 15f)  { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Giant; }
+            else if (roll < 30f)  { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Flanker; }
+            else if (roll < 40f)  { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Big; }
+            else if (roll < 55f)  { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.Axe; }
+            else                  { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Small; }
+        }
+        else // 3 ou 4 Zonas concluídas
+        {
+            if      (roll < 10f)   { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.GhostAxe; }
+            else if (roll < 17.5f) { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Giant; }
+            else if (roll < 35f)   { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Flanker; }
+            else if (roll < 45f)   { indexEscolhido = 0; tipoParaAplicar = EnemyController.EnemyType.Big; }
+            else if (roll < 60f)   { indexEscolhido = 1; tipoParaAplicar = EnemyController.EnemyType.Axe; }
+            else                   { indexEscolhido = 2; tipoParaAplicar = EnemyController.EnemyType.Small; }
+        }
+
+        // Instanciação
+        GameObject prefabEscolhido = enemyPrefabs[indexEscolhido];
+        var newEnemy = Instantiate(prefabEscolhido, pos, Quaternion.identity);
+        
+        // Aplica o tipo
+        EnemyController controller = newEnemy.GetComponent<EnemyController>();
+        if (controller != null) controller.type = tipoParaAplicar;
+
+        // Visual do Flanker (Avermelhado)
+        if (tipoParaAplicar == EnemyController.EnemyType.Flanker)
+        {
+            SpriteRenderer sr = newEnemy.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null) sr.color = new Color(1f, 0.7f, 0.7f);
+        }
+
         currentEnemyCount++;
 
+        // Listener de destruição
         var listener = newEnemy.AddComponent<EnemyDestroyListener>();
         listener.spawner = this;
 
-        // Avança o quadrante a cada N spawns
+        // Rotação de quadrantes
         spawnsSinceQuadrantChange++;
         if (spawnsSinceQuadrantChange >= SPAWNS_PER_QUADRANT)
         {
@@ -78,8 +136,6 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    // Spawn rotativo por quadrante (N/S/L/O) com variação de ±35°
-    // Isso faz os zumbis chegarem de direções diferentes, encercando o player
     Vector3 GetDirectionalSpawnPosition()
     {
         float baseAngle = spawnQuadrant * 90f + Random.Range(-35f, 35f);
@@ -104,10 +160,8 @@ public class EnemySpawner : MonoBehaviour
 public class EnemyDestroyListener : MonoBehaviour
 {
     public EnemySpawner spawner;
-
     void OnDestroy()
     {
-        if (spawner != null)
-            spawner.OnEnemyDestroyed();
+        if (spawner != null) spawner.OnEnemyDestroyed();
     }
 }

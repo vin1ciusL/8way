@@ -9,10 +9,13 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 velocidadeAtual;
 
     private float lastDamageTime = 0f;
-    private float damageCooldown = 0.4f; // Reduzido de 0.5s para dano mais frequente
-    
-    // Contador de quantos zumbis estão encostados (suporta múltiplos inimigos)
+    private float damageCooldown = 0.4f;
     private int enemiesInContact = 0;
+    private int danoAcumuladoDosInimigos = 0;
+
+    // NOVO: Referência para a animação
+    public Animator animator; 
+    private string currentState;
 
     void Start()
     {
@@ -27,7 +30,6 @@ public class PlayerMovement : MonoBehaviour
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        // Aplica o buff da 3ª área
         float velocidadeFinal = speed * GameController.playerSpeedMultiplier; 
 
         Vector2 velocidadeAlvo = new Vector2(moveHorizontal, moveVertical).normalized * velocidadeFinal;
@@ -37,49 +39,93 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Aplica dano com cooldown enquanto há 1 ou mais inimigos em contato
+        // Sistema de Dano
         if (enemiesInContact > 0 && Time.time - lastDamageTime >= damageCooldown)
         {
-            GameController.TakeDamage(2); // Dano aumentado de 1 para 2
+            // O dano não é mais fixo em "2", é o dano acumulado dos inimigos que encostaram
+            GameController.TakeDamage(danoAcumuladoDosInimigos); 
             lastDamageTime = Time.time;
+        }
+
+        // --- SISTEMA DE ANIMAÇÃO 4-WAY ---
+        UpdateAnimation();
+    }
+
+    void UpdateAnimation()
+    {
+        // Se esquecer de colocar o Animator ou morrer, não faz nada
+        if (animator == null || GameController.gameOver) return;
+
+        // 1. Descobre se está andando (Run) ou parado (Idle)
+        bool isMoving = velocidadeAtual.magnitude > 0.1f;
+
+        // 2. Descobre para onde o mouse está apontando
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 aimDir = (mousePos - transform.position).normalized;
+
+        string animCategory = isMoving ? "Run_" : "Idle_";
+        string animDirection = "";
+
+        // 3. Divide a tela num "X" para saber a direção exata
+        if (Mathf.Abs(aimDir.x) > Mathf.Abs(aimDir.y))
+        {
+            // O mouse está mais para os lados do que para cima/baixo
+            if (aimDir.x > 0) animDirection = "Dir";
+            else animDirection = "Esq";
+        }
+        else
+        {
+            // O mouse está mais para cima/baixo do que para os lados
+            if (aimDir.y > 0) animDirection = "Cima";
+            else animDirection = "Baixo";
+        }
+
+        // 4. Junta as palavras (Ex: "Run_" + "Dir" = "Run_Dir")
+        string newState = animCategory + animDirection;
+
+        // 5. Toca a animação apenas se ela for diferente da que já está tocando
+        if (currentState != newState)
+        {
+            animator.Play(newState);
+            currentState = newState;
         }
     }
 
-    // Moedas continuam sendo Trigger (Atravessam)
+    // --- (MANTÉM SUAS FUNÇÕES DE COLISÃO INTACTAS ABAIXO) ---
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.gameObject.CompareTag("Coletavel"))
         {
             audioSource.Play(); 
-            GameController.Heal(10); // <--- AGORA CURA 10!
+            GameController.Heal(10); 
             Destroy(other.gameObject);
         }
     }
 
-    // Detecta entrada em colisão com inimigo
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Inimigo"))
+        if (collision.gameObject.CompareTag("Inimigo") && collision.otherCollider is CircleCollider2D)
         {
-            if (collision.otherCollider is CircleCollider2D)
-            {
-                enemiesInContact++; // Incrementa contador
-            }
+            enemiesInContact++; 
+            // Pega o dano do zumbi específico que encostou
+            EnemyController enemy = collision.gameObject.GetComponent<EnemyController>();
+            if (enemy != null) danoAcumuladoDosInimigos += enemy.damageToPlayer;
         }
     }
 
-    // Detecta saída de colisão com inimigo
     void OnCollisionExit2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Inimigo"))
+        if (collision.gameObject.CompareTag("Inimigo") && collision.otherCollider is CircleCollider2D)
         {
-            if (collision.otherCollider is CircleCollider2D)
+            enemiesInContact--; 
+            // Remove o dano do zumbi que saiu
+            EnemyController enemy = collision.gameObject.GetComponent<EnemyController>();
+            if (enemy != null) danoAcumuladoDosInimigos -= enemy.damageToPlayer;
+
+            if (enemiesInContact <= 0) 
             {
-                enemiesInContact--; // Decrementa contador
-                
-                // Segurança: evita que o número fique negativo por algum bug de física
-                if (enemiesInContact < 0)
-                    enemiesInContact = 0;
+                enemiesInContact = 0;
+                danoAcumuladoDosInimigos = 0; // Limpa para evitar dano fantasma
             }
         }
     }

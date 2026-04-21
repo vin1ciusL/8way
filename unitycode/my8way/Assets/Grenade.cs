@@ -2,11 +2,15 @@ using UnityEngine;
 
 public class Grenade : MonoBehaviour
 {
-    public float speed = 15f;
+    public float speed = 40f;
     public float lifeTime = 2f;
     public float explosionRadius = 4f;
     public float damage = 50f;
     
+    // --- NOVA VARIÁVEL PARA O SOM ---
+    public AudioClip explosionSound;
+    public float volumeDaExplosao = 0.8f; // Um pouco alto pra dar impacto!
+
     private Vector2 direction;
     private float timer = 0f;
 
@@ -38,9 +42,19 @@ public class Grenade : MonoBehaviour
         {
             if (hit.CompareTag("Inimigo"))
             {
-                hit.GetComponent<EnemyController>().TakeDamage(damage);
+                // Cuidado com inimigos que já podem ter morrido no mesmo frame
+                EnemyController enemy = hit.GetComponent<EnemyController>();
+                if (enemy != null) enemy.TakeDamage(damage);
             }
         }
-        Destroy(gameObject); // Some depois de explodir
+
+        // --- TOCA O SOM DA EXPLOSÃO AQUI ---
+        if (explosionSound != null)
+        {
+            // Cria um áudio temporário na posição atual que sobrevive à destruição da granada
+            AudioSource.PlayClipAtPoint(explosionSound, transform.position, volumeDaExplosao);
+        }
+
+        Destroy(gameObject); // A granada some, mas o som continua!
     }
 }

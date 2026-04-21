@@ -42,7 +42,13 @@ public class Zone : MonoBehaviour
     {
         isCompleted = true;
         GameController.isCapturingZone = false;
-        GetComponent<SpriteRenderer>().color = Color.green;
+        
+        // Deixa a zona transparente ao invés de verde
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        Color color = sr.color;
+        color.a = 0f; // Transparente
+        sr.color = color;
+        
         GameController.CompleteZone();
         OnCaptureProgress?.Invoke(captureTimeRequired, captureTimeRequired); 
     }

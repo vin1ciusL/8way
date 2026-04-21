@@ -62,8 +62,8 @@ public static class GameController
         
         string aviso = "";
         if (zonesCompleted == 1) { hasGrenade = true; aviso = "GRANADA DESBLOQUEADA!"; }
-        else if (zonesCompleted == 2) { chainsawMultiplier = 1.5f; aviso = "+50% DANO DA MOTOSSERRA!"; }
-        else if (zonesCompleted == 3) { playerSpeedMultiplier = 1.5f; aviso = "+50% VELOCIDADE!"; }
+        else if (zonesCompleted == 2) { chainsawMultiplier = 1.3f; aviso = "+30% DANO DA ARMA!"; }
+        else if (zonesCompleted == 3) { playerSpeedMultiplier = 1.25f; aviso = "+25% VELOCIDADE!"; }
         else if (zonesCompleted == 4) { OnGameWin?.Invoke(); aviso = "TODAS AS ZONAS CAPTURADAS!"; }
 
         OnZoneReward?.Invoke(aviso); // Manda o texto pra UI

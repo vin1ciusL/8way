@@ -3,7 +3,7 @@ using UnityEngine;
 public class GrenadeLauncher : MonoBehaviour
 {
     public GameObject grenadePrefab;
-    private float cooldown = 15f;
+    private float cooldown = 9f;
     private float timer = 0f;
 
     void Update()

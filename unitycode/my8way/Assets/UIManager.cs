@@ -39,6 +39,7 @@ public class UIManager : MonoBehaviour
         // Inscreve-se nos eventos do GameController
         GameController.OnHealthChanged += UpdateHealthDisplay;
         GameController.OnGameOver += OnGameOver;
+        GameController.OnGameWin += OnGameWin;
         
         // Novos eventos
         Zone.OnCaptureProgress += UpdateCaptureText;
@@ -50,6 +51,7 @@ public class UIManager : MonoBehaviour
         // Desinscreve-se dos eventos
         GameController.OnHealthChanged -= UpdateHealthDisplay;
         GameController.OnGameOver -= OnGameOver;
+        GameController.OnGameWin -= OnGameWin;
         Zone.OnCaptureProgress -= UpdateCaptureText;
         GameController.OnZoneReward -= ShowPopup;
     }
@@ -112,18 +114,57 @@ public class UIManager : MonoBehaviour
             zoneCountText.text = "Zonas: " + GameController.zonesCompleted + "/4";
         }
     }
-
     void OnGameOver()
-    {
-        endGamePanel.SetActive(true);
-
-        // Pega o tempo final e exibe no painel de fim de jogo
-        if (finalTimeText != null)
         {
+            endGamePanel.SetActive(true);
+            GenerateRunSummary(false); // false = Derrota
+        }
+
+        void OnGameWin()
+        {
+            endGamePanel.SetActive(true);
+            GenerateRunSummary(true);  // true = Vitória
+        }
+
+        // NOVO: Função centralizada que formata o texto dependendo de vitória ou derrota
+        void GenerateRunSummary(bool isWin)
+        {
+            if (finalTimeText == null) return;
+
+            // Calcula o tempo formatado
             int minutes = Mathf.FloorToInt(GameController.GameTime / 60F);
             int seconds = Mathf.FloorToInt(GameController.GameTime - minutes * 60);
-            
-            finalTimeText.text = "Tempo: " + string.Format("{0:00}:{1:00}", minutes, seconds);
+            string timeFormatted = string.Format("{0:00}:{1:00}", minutes, seconds);
+
+            // 1. Título dinâmico com cores Hexadecimais e tamanhos diferentes (Rich Text do TextMeshPro)
+            string title = isWin ? "<color=#55FF55><size=150%><b>VITÓRIA!</b></size></color>\n" 
+                                : "<color=#FF4444><size=150%><b>VOCÊ FOI DEVORADO</b></size></color>\n";
+
+            // 2. Subtítulo charmoso
+            string subtitle = "<size=80%><color=#AAAAAA>Resumo da Partida</color></size>\n\n";
+
+            // 3. Monta as estatísticas base
+            string stats = $"Tempo Sobrevivido: <color=#FFFFFF><b>{timeFormatted}</b></color>\n";
+            stats += $"Zonas Capturadas: <color=#FFAA00><b>{GameController.zonesCompleted}/4</b></color>\n";
+
+            // 4. Informação exclusiva dependendo se ganhou ou perdeu
+            if (isWin)
+            {
+                // Se ganhou, mostramos o quão bem ele jogou (quanta vida sobrou)
+                stats += $"Vida Restante: <color=#FF5555><b>{GameController.PlayerHealth}/20</b></color>";
+            }
+            else
+            {
+                // Se perdeu, lembramos qual foi o último poder que ele conseguiu pegar antes de morrer
+                string lastBuff = "Nenhum";
+                if (GameController.zonesCompleted == 1) lastBuff = "Granada";
+                if (GameController.zonesCompleted == 2) lastBuff = "Dano da Arma";
+                if (GameController.zonesCompleted == 3) lastBuff = "Velocidade de Movimento";
+                
+                stats += $"Último Upgrade: <color=#55AAFF><b>{lastBuff}</b></color>";
+            }
+
+            // Junta tudo e joga no painel!
+            finalTimeText.text = title + subtitle + stats;
         }
     }
-}
